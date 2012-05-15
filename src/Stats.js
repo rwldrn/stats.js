@@ -2,140 +2,230 @@
  * @author mrdoob / http://mrdoob.com/
  */
 
-var Stats = function () {
+(function( window ) {
 
-	var startTime = Date.now(), prevTime = startTime;
-	var ms = 0, msMin = 1000, msMax = 0;
-	var fps = 0, fpsMin = 1000, fpsMax = 0;
-	var frames = 0, mode = 0;	
+function Stats( opts ) {
 
-	var container = document.createElement( 'div' );
-	container.id = 'stats';
-	container.addEventListener( 'mousedown', function ( event ) { event.preventDefault(); setMode( ++ mode % 2 ) }, false );
-	container.style.cssText = 'width:80px;opacity:0.9;cursor:pointer';
+  var startAt, that;
 
-	var fpsDiv = document.createElement( 'div' );
-	fpsDiv.id = 'fps';
-	fpsDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#002';
-	container.appendChild( fpsDiv );
+  that = this;
 
-	var fpsText = document.createElement( 'div' );
-	fpsText.id = 'fpsText';
-	fpsText.style.cssText = 'color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
-	fpsText.innerHTML = 'FPS';
-	fpsDiv.appendChild( fpsText );
+  startAt = Date.now();
 
-	var fpsGraph = document.createElement( 'div' );
-	fpsGraph.id = 'fpsGraph';
-	fpsGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0ff';
-	fpsDiv.appendChild( fpsGraph );
+  // Normalize options args
+  opts = opts || {};
 
-	while ( fpsGraph.children.length < 74 ) {
+  // visible, with display
+  // hidden, no display
+  //
+  this.view = opts.view || "visible";
 
-		var bar = document.createElement( 'span' );
-		bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#113';
-		fpsGraph.appendChild( bar );
 
-	}
+  // Default fps counter
+  this.mode = opts.mode || 0;
 
-	var msDiv = document.createElement( 'div' );
-	msDiv.id = 'ms';
-	msDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#020;display:none';
-	container.appendChild( msDiv );
+  this.fps = {
+    value: 0,
+    min: 1000,
+    max: 0,
 
-	var msText = document.createElement( 'div' );
-	msText.id = 'msText';
-	msText.style.cssText = 'color:#0f0;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
-	msText.innerHTML = 'MS';
-	msDiv.appendChild( msText );
+    div: null,
+    text: null,
+    graph: null
+  };
 
-	var msGraph = document.createElement( 'div' );
-	msGraph.id = 'msGraph';
-	msGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0f0';
-	msDiv.appendChild( msGraph );
+  this.ms = {
+    value: 0,
+    min: 1000,
+    max: 0,
 
-	while ( msGraph.children.length < 74 ) {
+    div: null,
+    text: null,
+    graph: null
+  };
 
-		var bar = document.createElement( 'span' );
-		bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#131';
-		msGraph.appendChild( bar );
+  this.time = {
+    start: startAt,
+    prev: startAt
+  };
 
-	}
+  this.frames = 0;
 
-	var setMode = function ( value ) {
 
-		mode = value;
+  this.container = Stats.createNode( "div", "stats", "width:80px;opacity:0.9;cursor:pointer" );
 
-		switch ( mode ) {
+  this.container.addEventListener( "mousedown", function ( event ) {
+    event.preventDefault();
 
-			case 0:
-				fpsDiv.style.display = 'block';
-				msDiv.style.display = 'none';
-				break;
-			case 1:
-				fpsDiv.style.display = 'none';
-				msDiv.style.display = 'block';
-				break;
-		}
+    setMode( ++that.mode % 2 );
+  }, false );
 
-	}
 
-	var updateGraph = function ( dom, value ) {
+  this.fps.div = Stats.createNode( "div", "fps", "padding:0 0 3px 3px;text-align:left;background-color:#002" );
+  this.container.appendChild( this.fps.div );
 
-		var child = dom.appendChild( dom.firstChild );
-		child.style.height = value + 'px';
+  this.fps.text = Stats.createNode( "div", "fpsText", "color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px" );
+  this.fps.text.innerHTML = "FPS";
+  this.fps.div.appendChild( this.fps.text );
 
-	}
+  this.fps.graph = Stats.createNode( "div", "fps.graph", "position:relative;width:74px;height:30px;background-color:#0ff" );
+  this.fps.div.appendChild( this.fps.graph );
 
-	return {
+  while ( this.fps.graph.children.length < 74 ) {
+    this.fps.graph.appendChild(
+      Stats.createNode( "span", null, "width:1px;height:30px;float:left;background-color:#113" )
+    );
+  }
 
-		domElement: container,
 
-		setMode: setMode,
+  this.ms.div = Stats.createNode( "div", "this.ms.value", "padding:0 0 3px 3px;text-align:left;background-color:#020;display:none" );
+  this.container.appendChild( this.ms.div );
 
-		begin: function () {
+  this.ms.text = Stats.createNode( "div", "this.ms.text", "color:#0f0;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px" );
+  this.ms.text.innerHTML = "MS";
+  this.ms.div.appendChild( this.ms.text );
 
-			startTime = Date.now();
+  this.ms.graph = Stats.createNode( "div", "this.ms.graph", "position:relative;width:74px;height:30px;background-color:#0f0" );
+  this.ms.div.appendChild( this.ms.graph );
 
-		},
+  while ( this.ms.graph.children.length < 74 ) {
+    this.ms.graph.appendChild(
+      Stats.createNode( "span", null, "width:1px;height:30px;float:left;background-color:#131" )
+    );
+  }
 
-		end: function () {
+  // Attach display element this.container
+  // visibility can optionally be set later
+  document.body.appendChild( this.container );
 
-			var time = Date.now();
 
-			ms = time - startTime;
-			msMin = Math.min( msMin, ms );
-			msMax = Math.max( msMax, ms );
 
-			msText.textContent = ms + ' MS (' + msMin + '-' + msMax + ')';
-			updateGraph( msGraph, Math.min( 30, 30 - ( ms / 200 ) * 30 ) );
+  this.setMode( this.mode );
+  this.setView( this.view );
 
-			frames ++;
-
-			if ( time > prevTime + 1000 ) {
-
-				fps = Math.round( ( frames * 1000 ) / ( time - prevTime ) );
-				fpsMin = Math.min( fpsMin, fps );
-				fpsMax = Math.max( fpsMax, fps );
-
-				fpsText.textContent = fps + ' FPS (' + fpsMin + '-' + fpsMax + ')';
-				updateGraph( fpsGraph, Math.min( 30, 30 - ( fps / 100 ) * 30 ) );
-
-				prevTime = time;
-				frames = 0;
-
-			}
-
-			return time;
-
-		},
-
-		update: function () {
-
-			startTime = this.end();
-			
-		}
-
-	}
-	
+  this.domElement = this.container;
 };
+
+Stats.prototype.get = function( metric ) {
+  var current = this[ metric ];
+
+  return current && {
+    value: current.value,
+    max: current.max,
+    min: current.min
+  };
+};
+
+
+// Set visibility of this.container element
+// visible, with display
+// hidden, no display
+//
+// ex.
+// stats.setView("visible").setMode(1)
+//   will show the ms monitor
+//
+// stats.setView("hidden")
+//   will hide the ms monitor
+//
+Stats.prototype.setView = function( visible ) {
+  this.view = visible;
+  this.container.style.visibility = visible;
+  return this;
+};
+
+// Set type of measurement to display
+// 0, for fps
+// 1, for this.ms.value
+//
+// ex.
+// stats.setMode("visible").setMode(0)
+//   will show the fps monitor
+//
+Stats.prototype.setMode = function( value ) {
+  this.mode = value;
+
+  switch ( this.mode ) {
+    case 0:
+      this.fps.div.style.display = "block";
+      this.ms.div.style.display = "none";
+      break;
+    case 1:
+      this.fps.div.style.display = "none";
+      this.ms.div.style.display = "block";
+      break;
+  }
+  return this;
+};
+
+
+Stats.prototype.begin = function () {
+  this.time.start = Date.now();
+  return this;
+};
+
+Stats.prototype.update = function () {
+  this.time.start = this.end();
+  return this;
+};
+
+Stats.prototype.end = function () {
+
+  var time, ms, fps;
+
+  time = Date.now();
+
+  ms = this.ms;
+  fps = this.fps;
+
+  this.ms.value = time - this.time.start;
+  this.ms.min = Math.min( this.ms.min, this.ms.value );
+  this.ms.max = Math.max( this.ms.max, this.ms.value );
+
+  this.ms.text.textContent =
+    this.ms.value + " MS (" + this.ms.min + "-" + this.ms.max + ")";
+
+  this.graph( this.ms.graph, Math.min( 30, 30 - ( this.ms.value / 200 ) * 30 ) );
+
+  this.frames++;
+
+  if ( time > this.time.prev + 1000 ) {
+
+    this.fps.value = Math.round( ( this.frames * 1000 ) / ( time - this.time.prev ) );
+    this.fps.min = Math.min( this.fps.min, this.fps.value );
+    this.fps.max = Math.max( this.fps.max, this.fps.value );
+
+    this.fps.text.textContent =
+      this.fps.value + " FPS (" + this.fps.min + "-" + this.fps.max + ")";
+
+    this.graph( this.fps.graph, Math.min( 30, 30 - ( this.fps.value / 100 ) * 30 ) );
+
+    this.time.prev = time;
+    this.frames = 0;
+  }
+
+  return time;
+};
+
+Stats.prototype.graph = function( dom, value ) {
+  var child = dom.appendChild( dom.firstChild );
+  child.style.height = value + "px";
+};
+
+
+Stats.createNode = function( tag, id, style ) {
+  var element = document.createElement( tag );
+
+  element.id = id || ( ++Stats.createNode.id + Date.now() );
+  element.style.cssText = style;
+
+  return element;
+};
+
+
+Stats.createNode.id = 0;
+
+
+window.Stats = Stats;
+
+})( this );
