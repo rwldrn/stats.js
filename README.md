@@ -18,15 +18,21 @@ This class provides a simple info box that will help you monitor your code perfo
 ### Usage ###
 
 ```javascript
-var stats = new Stats();
-stats.setMode(1); // 0: fps, 1: ms
+var stats = new Stats({ view: "hidden", mode: 0 });
 
-// Align top-left
-stats.domElement.style.position = 'absolute';
-stats.domElement.style.left = '0px';
-stats.domElement.style.top = '0px';
+/**
+ * Optional...
+ *
+ * Align top-left
+ *
 
-document.body.appendChild( stats.domElement );
+  stats.domElement.style.position = 'absolute';
+  stats.domElement.style.left = '0px';
+  stats.domElement.style.top = '0px';
+
+  document.body.appendChild( stats.domElement );
+ *
+ */
 
 setInterval( function () {
 
