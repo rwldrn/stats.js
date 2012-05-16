@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+  <head>
+    <title>stats.js - sprite</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+      body {
+        margin: 0px;
+        overflow: hidden;
+      }
+      #canvas {
+         position: absolute;
+         left: 10px;
+         top: 50px;
+
+         border: thin inset rgba(100,150,230,0.5);
+      }
+
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="480" height="200">
+      Canvas not supported
+    </canvas>
+
+    <script src="../src/Stats.js"></script>
+    <script src="raf.js"></script>
+    <script src="sprite.js"></script>
+    <script>
+
+      var stats = new Stats({ mode: 0 });
+
+      stats.domElement.style.left = '300px';
+      stats.domElement.style.top = '0px';
+
+
+
+      // http://gyazo.com/dfbb999cc4bedd7d009defd902923476.png
+
+      var canvas, cells, context, count, i, j, reference, sprites;
+
+      canvas = document.getElementById("canvas");
+      context = canvas.getContext("2d");
+      count = +location.search.replace("?", "") || 2;
+
+      sprites = [];
+
+      for ( i = 0; i < count; i++ ) {
+
+        cells = [];
+
+        for ( j = 0; j < 10; j++ ) {
+          cells.push({
+            left: j * 48 + (i * 10), top: 0, width: 48, height: 64
+          });
+        }
+
+        sprites.push(
+          new Sprite({
+            name: "numbers",
+            // Image source
+            src: "numbered-sprite-sheet-480.png",
+            // Canvas context
+            context: context,
+            // Start at the far right
+            // sprite frame definitions will move the sprite leftward
+            bounds: {
+              left: 432,
+              top: 100
+            },
+            // 50 pixels per inch movement
+            velocity: {
+              x: 60
+            },
+            // Sprite cell definitions
+            cells: cells,
+            // Sprite frame definitions
+            frames: [
+
+              // Move sprite in place
+              {
+                // Optional frame state properties
+                interval: 100,
+                time: {
+                  last: 0
+                },
+
+                // Required
+                action: function( sprite, context, time ) {
+
+                  if ( time - this.time.last > this.interval ) {
+                     sprite.sheet.next();
+                     this.time.last = time;
+                  }
+                }
+              },
+
+              // Move sprite left to right
+              {
+                // Optional frame state properties
+                move: {
+                  last: 0
+                },
+
+                // Required
+                action: function( sprite, context, time ) {
+                  if ( this.move.last ) {
+                    // Since we're moving left, compound decremental assignment
+                    // will reduce the left side distance giving the appearance
+                    // of leftward motion
+                    sprite.bounds.left -= sprite.velocity.x * ( (time - this.move.last) / 1000 );
+
+                    // If we've gone over the edge,
+                    // Restart on the right hand side by setting the
+                    // left boundary to the canvas width
+                    if ( sprite.bounds.left < 0 ) {
+                      sprite.bounds.left = canvas.width;
+                    }
+                  }
+                  // Update the stored time
+                  this.move.last = time;
+                }
+              }
+            ]
+          })
+        );
+      }
+
+      reference = sprites[ 0 ].reference;
+
+      console.log( sprites );
+
+
+      // Create actual animation
+      function animate( time ) {
+
+        // Call to begin measuring frames
+        stats.begin();
+
+        // Clear the canvas
+        context.clearRect( 0, 0, canvas.width, canvas.height );
+
+        // Redraw the reference sprites
+        context.drawImage( reference, 0, 0 );
+
+        for ( var i = 0; i < count; i++ ) {
+          sprites[i].update( time);
+          sprites[i].render();
+        }
+
+        requestAnimationFrame( animate );
+
+        // Call to end measuring and report
+        stats.end();
+      }
+
+
+      requestAnimationFrame( animate );
+
+    </script>
+  </body>
+</html>
