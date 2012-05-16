@@ -1,16 +1,14 @@
 /**
- * @author mrdoob / http://mrdoob.com/
+ * Based on original work by mrdoob / http://mrdoob.com/
+ *
  */
 
 (function( window ) {
 
 function Stats( opts ) {
 
-  var startAt, that;
-
-  that = this;
-
-  startAt = Date.now();
+  // Initialize inner private vars
+  var startAt;
 
   // Normalize options args
   opts = opts || {};
@@ -24,73 +22,148 @@ function Stats( opts ) {
   // Default fps counter
   this.mode = opts.mode || 0;
 
+  // FPS / Frames Per Second
+  //
+  // Frames rendered in the last second;
+  // Higher is better.
+  //
   this.fps = {
     value: 0,
     min: 1000,
     max: 0,
 
+    // Display properties
     div: null,
     text: null,
     graph: null
   };
 
+  // MS / Milliseconds
+  //
+  // Time spent rendering frame;
+  // Lower is better.
+  //
   this.ms = {
     value: 0,
     min: 1000,
     max: 0,
 
+    // Display properties
     div: null,
     text: null,
     graph: null
   };
+
+  // Define `startAt`, initially shared by
+  // this.time.start
+  // this.time.prev
+  startAt = Date.now();
 
   this.time = {
     start: startAt,
     prev: startAt
   };
 
+  // Instance frame count
   this.frames = 0;
 
 
-  this.container = Stats.createNode( "div", "stats", "width:80px;opacity:0.9;cursor:pointer" );
+  // Display
+  this.container = Stats.createNode({
+    props: {
+      id: "stats",
+      style: {
+        cssText: "width:80px;opacity:0.9;cursor:pointer;position:absolute"
+      }
+    }
+  });
 
-  this.container.addEventListener( "mousedown", function ( event ) {
-    event.preventDefault();
-
-    setMode( ++that.mode % 2 );
-  }, false );
-
-
-  this.fps.div = Stats.createNode( "div", "fps", "padding:0 0 3px 3px;text-align:left;background-color:#002" );
+  this.fps.div = Stats.createNode({
+    props: {
+      id: "fps",
+      style: {
+        cssText: "padding:0 0 3px 3px;text-align:left;background-color:#002"
+      }
+    }
+  });
   this.container.appendChild( this.fps.div );
 
-  this.fps.text = Stats.createNode( "div", "fpsText", "color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px" );
-  this.fps.text.innerHTML = "FPS";
+  this.fps.text = Stats.createNode({
+    props: {
+      id: "fps.text",
+      innerHTML: "FPS",
+      style: {
+        cssText: "color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px"
+      }
+    }
+  });
   this.fps.div.appendChild( this.fps.text );
 
-  this.fps.graph = Stats.createNode( "div", "fps.graph", "position:relative;width:74px;height:30px;background-color:#0ff" );
+  this.fps.graph = Stats.createNode({
+    props: {
+      id: "fps.graph",
+      style: {
+        cssText: "position:relative;width:74px;height:30px;background-color:#0ff"
+      }
+    }
+  });
   this.fps.div.appendChild( this.fps.graph );
 
   while ( this.fps.graph.children.length < 74 ) {
     this.fps.graph.appendChild(
-      Stats.createNode( "span", null, "width:1px;height:30px;float:left;background-color:#113" )
+      Stats.createNode({
+        type: "span",
+        props: {
+          style: {
+            cssText: "width:1px;height:30px;float:left;background-color:#113"
+          }
+        }
+      })
     );
   }
 
 
-  this.ms.div = Stats.createNode( "div", "this.ms.value", "padding:0 0 3px 3px;text-align:left;background-color:#020;display:none" );
+  this.ms.div = Stats.createNode({
+    props: {
+      id: "ms.value",
+      style: {
+        cssText: "padding:0 0 3px 3px;text-align:left;background-color:#020;display:none"
+      }
+    }
+  });
   this.container.appendChild( this.ms.div );
 
-  this.ms.text = Stats.createNode( "div", "this.ms.text", "color:#0f0;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px" );
-  this.ms.text.innerHTML = "MS";
+  this.ms.text = Stats.createNode({
+    props: {
+      id: "ms.text",
+      innerHTML: "MS",
+      style: {
+        cssText: "color:#0f0;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px"
+      }
+    }
+  });
   this.ms.div.appendChild( this.ms.text );
 
-  this.ms.graph = Stats.createNode( "div", "this.ms.graph", "position:relative;width:74px;height:30px;background-color:#0f0" );
+  this.ms.graph = Stats.createNode({
+    props: {
+      id: "ms.graph",
+      style: {
+        cssText: "position:relative;width:74px;height:30px;background-color:#0f0"
+      }
+    }
+  });
   this.ms.div.appendChild( this.ms.graph );
 
   while ( this.ms.graph.children.length < 74 ) {
     this.ms.graph.appendChild(
-      Stats.createNode( "span", null, "width:1px;height:30px;float:left;background-color:#131" )
+      Stats.createNode({
+        type: "span",
+        props: {
+          style: {
+            cssText: "width:1px;height:30px;float:left;background-color:#131"
+          }
+        }
+      })
     );
   }
 
@@ -98,16 +171,33 @@ function Stats( opts ) {
   // visibility can optionally be set later
   document.body.appendChild( this.container );
 
+  // Listen for clicks on the display box
+  this.container.addEventListener( "mousedown", function ( event ) {
+    event.preventDefault();
 
+    this.setMode( ++this.mode % 2 );
+  }.bind(this), false );
 
+  // Auto set by constructor options
   this.setMode( this.mode );
   this.setView( this.view );
 
+  // Back compat alias
   this.domElement = this.container;
-};
+}
 
+
+
+/**
+ * get Get the current state of either "fps" or "ms"
+ * @param  {String} metric Which type of measured metric to return
+ * @return {Object} Current: value, min, max
+ *
+ * ex. stats.get("fps")
+ * { value: 60, min: 55, max: 65 }
+ */
 Stats.prototype.get = function( metric ) {
-  var current = this[ metric ];
+ var current = this[ metric ];
 
   return current && {
     value: current.value,
@@ -117,31 +207,40 @@ Stats.prototype.get = function( metric ) {
 };
 
 
-// Set visibility of this.container element
-// visible, with display
-// hidden, no display
-//
-// ex.
-// stats.setView("visible").setMode(1)
-//   will show the ms monitor
-//
-// stats.setView("hidden")
-//   will hide the ms monitor
-//
+/**
+ * setView Set visibility of this.container element
+ *
+ * @param {String} visible
+ *
+ * visible, with display
+ * hidden, no display
+ *
+ * ex.
+ * stats.setView("visible").setMode(1)
+ * will show the ms monitor
+ *
+ * stats.setView("hidden")
+ * will hide the ms monitor
+ */
 Stats.prototype.setView = function( visible ) {
   this.view = visible;
   this.container.style.visibility = visible;
   return this;
 };
 
-// Set type of measurement to display
-// 0, for fps
-// 1, for this.ms.value
-//
-// ex.
-// stats.setMode("visible").setMode(0)
-//   will show the fps monitor
-//
+
+/**
+ * setMode Set type of measurement to display
+ *
+ * @param {Numner} value
+ *
+ * 0, for fps
+ * 1, for this.ms.value
+ *
+ * ex.
+ * stats.setMode("visible").setMode(0)
+ *   will show the fps monitor
+ */
 Stats.prototype.setMode = function( value ) {
   this.mode = value;
 
@@ -158,17 +257,30 @@ Stats.prototype.setMode = function( value ) {
   return this;
 };
 
-
+/**
+ * begin Start measuring, called before measured code block
+ *
+ * @return {Object} Stats instance
+ */
 Stats.prototype.begin = function () {
   this.time.start = Date.now();
   return this;
 };
 
+/**
+ * update Update the internal start time with the current end value
+ * @return {Object} Stats instance
+ */
 Stats.prototype.update = function () {
   this.time.start = this.end();
   return this;
 };
 
+/**
+ * end End measuring, called after measured code block
+ *
+ * @return {[type]} [description]
+ */
 Stats.prototype.end = function () {
 
   var time, ms, fps;
@@ -207,24 +319,53 @@ Stats.prototype.end = function () {
   return time;
 };
 
+/**
+ * graph Update graph display bar height
+ * @param  {Element} dom
+ * @param  {Number} value
+ *
+ * @return {Object} Stats instance
+ */
 Stats.prototype.graph = function( dom, value ) {
   var child = dom.appendChild( dom.firstChild );
   child.style.height = value + "px";
+
+  return this;
 };
 
+function setProps( target, props ) {
+  Object.keys( props ).forEach(function( prop ) {
+    var val = this[ prop ];
 
-Stats.createNode = function( tag, id, style ) {
-  var element = document.createElement( tag );
+    if ( typeof val === "object" && !Array.isArray(val) ) {
+      setProps( target[ prop ], val );
+    } else {
+      target[ prop ] = val;
+    }
+  }, props );
+}
 
-  element.id = id || ( ++Stats.createNode.id + Date.now() );
-  element.style.cssText = style;
+// Stats.createNode
+// DOM Node creation
+
+/**
+ * Stats.createNode DOM Node creation
+ * @param  {Object} options type, properties
+ * @return {Element} element
+ */
+Stats.createNode = function( options ) {
+  var element;
+
+  if ( !options.type ) {
+    options.type = "div";
+  }
+
+  element = document.createElement( options.type );
+
+  setProps( element, options.props );
 
   return element;
 };
-
-
-Stats.createNode.id = 0;
-
 
 window.Stats = Stats;
 
